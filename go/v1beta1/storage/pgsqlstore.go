@@ -45,6 +45,7 @@ type PgSQLStore struct {
 }
 
 func NewPgSQLStore(config *config.PgSQLConfig) (*PgSQLStore, error) {
+	log.Println("USING PGSQL")
 	paginationKey := config.PaginationKey
 	if paginationKey == "" {
 		log.Println("pagination key is empty, generating...")
@@ -302,6 +303,8 @@ func (pg *PgSQLStore) ListOccurrences(ctx context.Context, pID, filter, pageToke
 	id := decryptInt64(pageToken, pg.paginationKey, 0)
 
 	parsedExpr, _ := parser.Parse(common.NewStringSource(filter, ""))
+	fmt.Printf("gete expr %#v\n", parsedExpr.GetExpr().String())
+	fmt.Printf("get expr get call get func %#v\n", parsedExpr.GetExpr().GetCallExpr().Args[0].GetCallExpr().GetFunction())
 	fmt.Printf("%#v\n", parsedExpr)
 
 	rows, err := pg.DB.Query(listOccurrences, pID, id, pageSize)
