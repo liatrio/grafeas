@@ -1,6 +1,8 @@
 version: '3.4'
 services:
   grafeas:
+    depends_on:
+        - db
     build: .
     ports:
     - "8080:8080"

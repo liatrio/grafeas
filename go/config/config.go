@@ -81,7 +81,23 @@ grafeas:
     cors_allowed_origins:
       # - "http://example.net"
   # Supported storage types are "memstore" and "embedded"
-  storage_type: "memstore"
+  storage_type: "postgres"
+  postgres:
+    # Database host
+    host: "127.0.0.1:5432"
+    # Dabase name
+    dbname: "postgres"
+    # Database username
+    user: "postgres"
+    # Database password
+    password: "password"
+    # Valid sslmodes disable, allow, prefer, require, verify-ca, verify-full.
+    # See https://www.postgresql.org/docs/current/static/libpq-connect.html for details
+    sslmode: "require"
+    # 32-bit URL-safe base64 key used to encrypt pagination tokens
+    # If one is not provided, it will be generated.
+    # Multiple grafeas instances in the same cluster need the same value.
+    paginationkey:
 `)
 
 // LoadConfig creates a config from a YAML-file. If fileName is an empty

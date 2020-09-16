@@ -27,6 +27,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/grafeas/grafeas/go/config"
+	"github.com/grafeas/grafeas/go/filtering/common"
+	"github.com/grafeas/grafeas/go/filtering/parser"
 	"github.com/grafeas/grafeas/go/name"
 	pb "github.com/grafeas/grafeas/proto/v1beta1/grafeas_go_proto"
 	prpb "github.com/grafeas/grafeas/proto/v1beta1/project_go_proto"
@@ -298,6 +300,10 @@ func (pg *PgSQLStore) GetOccurrence(ctx context.Context, pID, oID string) (*pb.O
 func (pg *PgSQLStore) ListOccurrences(ctx context.Context, pID, filter, pageToken string, pageSize int32) ([]*pb.Occurrence, string, error) {
 	var rows *sql.Rows
 	id := decryptInt64(pageToken, pg.paginationKey, 0)
+
+	parsedExpr, _ := parser.Parse(common.NewStringSource(filter, ""))
+	fmt.Printf("%#v\n", parsedExpr)
+
 	rows, err := pg.DB.Query(listOccurrences, pID, id, pageSize)
 	if err != nil {
 		return nil, "", status.Error(codes.Internal, "Failed to list Occurrences from database")

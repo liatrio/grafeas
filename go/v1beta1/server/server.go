@@ -31,7 +31,7 @@ import (
 
 	"github.com/cockroachdb/cmux"
 	"github.com/grafeas/grafeas/go/config"
-	"github.com/grafeas/grafeas/go/v1beta1/api"
+	grafeas "github.com/grafeas/grafeas/go/v1beta1/api"
 	"github.com/grafeas/grafeas/go/v1beta1/project"
 	"github.com/grafeas/grafeas/go/v1beta1/storage"
 	pb "github.com/grafeas/grafeas/proto/v1beta1/grafeas_go_proto"
