@@ -37,6 +37,8 @@ import (
 	fieldmaskpb "google.golang.org/genproto/protobuf/field_mask"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	expr "github.com/grafeas/grafeas/cel"
 )
 
 type PgSQLStore struct {
@@ -296,18 +298,57 @@ func (pg *PgSQLStore) GetOccurrence(ctx context.Context, pID, oID string) (*pb.O
 	return &o, nil
 }
 
+
+func ParseExpression(expression *expr.Expr, squirrelQuery string) {
+											// not an actual string https://github.com/Masterminds/squirrel
+	switch expression.ExprKind.(type) {
+	case *expr.Expr_IdentExpr: // name
+		identifier := expression.GetCallExpr().GetArgs()[0].GetIdentExpr().Name
+		fmt.Println(identifier)
+		// Logic for formulating left side of db query in squirrel query
+	case *expr.Expr_ConstExpr: // "abc"
+		constExpr := expression.GetCallExpr().GetArgs()[1].GetConstExpr().GetStringValue()
+		fmt.Println(constExpr)
+		// Logic for formulating right side of db query in squirrel query
+	case *expr.Expr_CallExpr: //name = "abc"
+		function := expression.GetCallExpr().GetFunction() // =
+		fmt.Println(function)
+		// add function to the squirrel query
+		ParseExpression(expression.GetCallExpr().GetArgs()[0], squirrelQuery)
+		ParseExpression(expression.GetCallExpr().GetArgs()[1], squirrelQuery)
+	}
+}
+
 // ListOccurrences returns up to pageSize number of occurrences for this project beginning
 // at pageToken, or from start if pageToken is the empty string.
 func (pg *PgSQLStore) ListOccurrences(ctx context.Context, pID, filter, pageToken string, pageSize int32) ([]*pb.Occurrence, string, error) {
 	var rows *sql.Rows
 	id := decryptInt64(pageToken, pg.paginationKey, 0)
+	var err error
 
-	parsedExpr, _ := parser.Parse(common.NewStringSource(filter, ""))
-	fmt.Printf("gete expr %#v\n", parsedExpr.GetExpr().String())
-	fmt.Printf("get expr get call get func %#v\n", parsedExpr.GetExpr().GetCallExpr().Args[0].GetCallExpr().GetFunction())
-	fmt.Printf("%#v\n", parsedExpr)
+	if filter != "" {
+		parsedExpr, _ := parser.Parse(common.NewStringSource(filter, ""))
+		// function := parsedExpr.GetExpr().GetCallExpr().GetFunction()
+		expression := parsedExpr.GetExpr()
+		squirrelQuery := ""
+		ParseExpression(expression, squirrelQuery)
+		leftarg := parsedExpr.GetExpr().GetCallExpr().GetArgs()[0].GetIdentExpr().Name
+		rightarg := parsedExpr.GetExpr().GetCallExpr().GetArgs()[1].GetConstExpr().GetStringValue()
+		//fmt.Printf("gete expr %#v\n", parsedExpr.GetExpr().GetCallExpr().GetFunction())
+		// fmt.Printf("left arg %#v\n", parsedExpr.GetExpr().GetCallExpr().GetArgs()[0])
+		// fmt.Printf("right arg %#v\n", parsedExpr.GetExpr().GetCallExpr().GetArgs()[1])
+		// fmt.Printf("left arg %#v\n", parsedExpr.GetExpr().GetCallExpr()
+		//fmt.Printf("get expr get call get func %#v\n", parsedExpr.GetExpr().GetCallExpr().Args[0].GetCallExpr().GetFunction())
+		//fmt.Printf("%#v\n", parsedExpr)
+		// kind = 'VULNERABILITY' :wave:
+		//fmt.Printf("SELECT id, data FROM occurrences WHERE (project_name = ) AND (id > $2) AND ($3 = $4) LIMIT $5", )
+		listOccurrencesEscaped := fmt.Sprintf("SELECT id, data FROM occurrences WHERE (project_name = $1) AND (id > $2) AND (%s = $3) LIMIT $4", leftarg)
+		// we need to sanitize!
 
-	rows, err := pg.DB.Query(listOccurrences, pID, id, pageSize)
+		rows, err = pg.DB.Query(listOccurrencesEscaped, pID, id, rightarg, pageSize)
+	} else {
+		rows, err = pg.DB.Query("SELECT id, data FROM occurrences WHERE (project_name = $1) AND (id > $2) LIMIT $3", pID, id, pageSize)
+	}
 	if err != nil {
 		return nil, "", status.Error(codes.Internal, "Failed to list Occurrences from database")
 	}
