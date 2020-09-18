@@ -73,10 +73,6 @@ func NewPgSQLStore(config *config.PgSQLConfig) (*PgSQLStore, error) {
 	if db.Ping() != nil {
 		return nil, errors.New("database server is not alive")
 	}
-	if _, err := db.Exec(createTables); err != nil {
-		db.Close()
-		return nil, err
-	}
 	if err := executeMigrations(db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to execute database migrations: %s", err)

@@ -3,6 +3,7 @@ package storage
 // createTables represents the initial query grafeas uses to populate the database schema.
 // for backwards compatibility, this query will remain here. this will act as the "base" migration point.
 const createTables = `
+BEGIN;
 CREATE TABLE IF NOT EXISTS projects (
 	id SERIAL PRIMARY KEY,
 	name TEXT NOT NULL UNIQUE
@@ -29,18 +30,24 @@ CREATE TABLE IF NOT EXISTS operations (
 	data TEXT,
 	UNIQUE (project_name, operation_name)
 );
+COMMIT;
 `
 
 // upMigrations is a slice of strings that contains each database migration from the base.
 // this is an ordered slice, so new migrations should be placed at the end
 var upMigrations = []string{
-	v1Up,
+	createTables,
+	alterOccurrenceTableAddFilterableColumns,
 }
 
-// v1Up alters the existing tables for occurrences and notes to add columns for each filterable field
-const v1Up = `
-CREATE TABLE IF NOT EXISTS test (
-	id SERIAL PRIMARY KEY,
-	foo TEXT NOT NULL
-);
+// alterOccurrenceTableAddFilterableColumns alters the existing table for occurrences to add columns for each filterable field
+const alterOccurrenceTableAddFilterableColumns = `
+BEGIN;
+	ALTER TABLE occurrences
+		ADD COLUMN resource_name TEXT,
+		ADD COLUMN resource_uri TEXT,
+		ADD COLUMN kind TEXT,
+		ADD COLUMN create_time timestamp,
+		ADD COLUMN update_time timestamp;
+COMMIT;
 `
