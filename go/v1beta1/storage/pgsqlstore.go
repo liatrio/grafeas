@@ -18,7 +18,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"io/ioutil"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -72,10 +77,46 @@ func NewPgSQLStore(config *config.PgSQLConfig) (*PgSQLStore, error) {
 		db.Close()
 		return nil, err
 	}
+	if err := executeMigrations(db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to execute database migrations: %s", err)
+	}
 	return &PgSQLStore{
 		DB:            db,
 		paginationKey: paginationKey,
 	}, nil
+}
+
+func executeMigrations(db *sql.DB) error {
+	dir, err := ioutil.TempDir("", "grafeas-migrations")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+
+	for i, upMigration := range upMigrations {
+		err := ioutil.WriteFile(fmt.Sprintf("%s/%d_migration.up.sql", dir, i), []byte(upMigration), 0644)
+		if err != nil {
+			return err
+		}
+	}
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file://%s", dir), "postgres", driver)
+	if err != nil {
+		return err
+	}
+
+	err = m.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	return nil
 }
 
 func createDatabase(source, dbName string) error {

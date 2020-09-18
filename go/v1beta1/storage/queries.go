@@ -15,34 +15,6 @@
 package storage
 
 const (
-	createTables = `
-		CREATE TABLE IF NOT EXISTS projects (
-			id SERIAL PRIMARY KEY,
-			name TEXT NOT NULL UNIQUE
-		);
-		CREATE TABLE IF NOT EXISTS notes (
-			id SERIAL PRIMARY KEY,
-			project_name TEXT NOT NULL,
-			note_name TEXT NOT NULL,
-			data TEXT,
-			UNIQUE (project_name, note_name)
-		);
-		CREATE TABLE IF NOT EXISTS occurrences (
-			id SERIAL PRIMARY KEY,
-			project_name TEXT NOT NULL,
-			occurrence_name TEXT NOT NULL,
-			data TEXT,
-			note_id int REFERENCES notes NOT NULL,
-			UNIQUE (project_name, occurrence_name)
-		);
-		CREATE TABLE IF NOT EXISTS operations (
-			id SERIAL PRIMARY KEY,
-			project_name TEXT NOT NULL,
-			operation_name TEXT NOT NULL,
-			data TEXT,
-			UNIQUE (project_name, operation_name)
-		);`
-
 	insertProject = `INSERT INTO projects(name) VALUES ($1)`
 	projectExists = `SELECT EXISTS (SELECT 1 FROM projects WHERE name = $1)`
 	deleteProject = `DELETE FROM projects WHERE name = $1`
