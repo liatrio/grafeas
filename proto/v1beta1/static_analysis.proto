@@ -35,42 +35,6 @@ enum Rating {
     E = 4;
 }
 
-// StaticAnalysis is the Note for static analyses on pieces of code.
-message StaticAnalysis {
-    // Analysis tool involved.
-    string tool = 1;
-    // Version of the analysis tool used.
-    string tool_version = 2;
-    // Analysis tool configuration at the time of the analysis run.
-    string tool_config = 3;
-    // Overall code quality stats
-    Stats summary = 4;
-   //Source context were the analysis ran.
-    grafeas.v1beta1.source.SourceContext context = 5;
-    // Time at which execution of the analysis was started.
-    google.protobuf.Timestamp start_time = 6;
-    // Time at which execution of the analysis was finished.
-    google.protobuf.Timestamp end_time = 7;
-}
-
-// Static Analysis statistics.
-message Stats {
-    // Cyclomatic and cognitive complexity stats
-    Complexity complexity = 1;
-    // Code duplication
-    Duplication duplication = 2;
-    // Software Quality Assessment based on Lifecycle Expectations (SQALE)
-    Maintainability maintainability = 3;
-    // Reliability stats
-    Reliability reliability = 4;
-    // Security stats
-    Security security = 5;
-    // Code size
-    CodeSize code_size = 6;
-    // Issues found
-    Issues issues = 7;
-}
-
 // Code Complexity
 message Complexity {
     // Cyclomatic Complexity calculated based on the number of paths through the code.
@@ -97,13 +61,14 @@ message Duplication {
     // The ratio of duplicated lines in relation to the total number of lines.
     // duplicated_lines / lines * 100
     float lines_density = 4;
+    // Optional list of findings (duplications)
+    repeated Finding findings = 5;
 }
 
 // Maintainability of the code or Software Quality Assessment based on Lifecycle Expectations (SQALE)
 message Maintainability {
     // Total count of Code Smell issues.
     uint64 code_smells = 1;
-
     // Rating given to your project related to the value of your sqale_debt_ratio. Values can be A, B, C, D or E.
     Rating sqale_rating = 2;
     // Effort to fix all Code Smells, in minutes.
@@ -167,6 +132,8 @@ message CodeSize {
     uint64 functions = 8;
     // Number of statements.
     uint64 statements = 9;
+    // Optional list of findings (code size)
+    repeated Finding findings = 10;
 }
 
 message Issues {
@@ -190,9 +157,9 @@ message Issues {
     uint32 confirmed = 9;
     // Total count of issues in the Reopened state
     uint32 reopened = 10;
+    // Optional list of findings (issues)
+    repeated Finding findings = 11;
 }
-
-
 
 // FileLocation defines the exact location for a given analysis result.
 message FileLocation {
@@ -215,4 +182,45 @@ message Finding {
     string id = 3;
     // A description for the finding
     string description = 4;
+}
+
+// Static Analysis statistics.
+message Stats {
+    // Cyclomatic and cognitive complexity stats
+    Complexity complexity = 1;
+    // Code duplication
+    Duplication duplication = 2;
+    // Software Quality Assessment based on Lifecycle Expectations (SQALE)
+    Maintainability maintainability = 3;
+    // Reliability stats
+    Reliability reliability = 4;
+    // Security stats
+    Security security = 5;
+    // Code size
+    CodeSize code_size = 6;
+    // Issues found
+    Issues issues = 7;
+}
+
+// StaticAnalysis is the Note for static analyses on pieces of code.
+message StaticAnalysis {
+    // Analysis tool involved.
+    string tool = 1;
+    // Version of the analysis tool used.
+    string tool_version = 2;
+    // Analysis tool configuration at the time of the analysis run.
+    string tool_config = 3;
+    // Overall code quality stats
+    Stats summary = 4;
+   //Source context were the analysis ran.
+    grafeas.v1beta1.source.SourceContext context = 5;
+    // Time at which execution of the analysis was started.
+    google.protobuf.Timestamp start_time = 6;
+    // Time at which execution of the analysis was finished.
+    google.protobuf.Timestamp end_time = 7;
+}
+
+// Details is an Occurrence that contains the static analysis results.
+message Details {
+    StaticAnalysis analysis_results = 1;
 }
