@@ -49,6 +49,13 @@
 //go:generate swagger source.proto
 //go:generate mv source.swagger.json swagger
 
+//go:generate protoc static_analysis.proto
+//go:generate rm -rf static_analysis_go_proto
+//go:generate mkdir static_analysis_go_proto
+//go:generate mv static_analysis.pb.go static_analysis_go_proto
+//go:generate swagger static_analysis.proto
+//go:generate mv static_analysis.swagger.json swagger
+
 //go:generate protoc provenance.proto
 //go:generate rm -rf provenance_go_proto
 //go:generate mkdir provenance_go_proto

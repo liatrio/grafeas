@@ -246,7 +246,7 @@ message Occurrence {
     grafeas.v1beta1.attestation.Details attestation = 14;
     // Describes a specific in-toto link.
     grafeas.v1beta1.intoto.Details intoto = 15;
-    // Describes a static analysis of the code
+    // Describes a specific static analysis report.
     grafeas.v1beta1.static_analysis.Details static_analysis = 16;
   }
 
@@ -329,6 +329,8 @@ message Note {
     grafeas.v1beta1.attestation.Authority attestation_authority = 16;
     // A note describing an in-toto link.
     grafeas.v1beta1.intoto.InToto intoto = 17;
+    // A note describing a static analysis report.
+    grafeas.v1beta1.static_analysis.StaticAnalysis static_analysis = 18;
   }
 
   // next_id = 18;
