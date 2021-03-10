@@ -38,6 +38,7 @@ import "proto/v1beta1/intoto.proto";
 import "proto/v1beta1/package.proto";
 import "proto/v1beta1/provenance.proto";
 import "proto/v1beta1/vulnerability.proto";
+import "proto/v1beta1/static_analysis.proto";
 
 // [Grafeas](grafeas.io) API.
 //
@@ -245,6 +246,8 @@ message Occurrence {
     grafeas.v1beta1.attestation.Details attestation = 14;
     // Describes a specific in-toto link.
     grafeas.v1beta1.intoto.Details intoto = 15;
+    // Describes a static analysis of the code
+    grafeas.v1beta1.static_analysis.Details static_analysis = 16;
   }
 
   // next_id = 16;

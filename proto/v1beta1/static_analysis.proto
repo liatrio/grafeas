@@ -1,0 +1,218 @@
+// Copyright 2020 The Grafeas Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// This metadata type is heavily inspired and based on https://docs.sonarqube.org/latest/user-guide/metric-definitions/
+
+syntax = "proto3";
+
+package grafeas.v1beta1.static_analysis;
+
+option go_package = "github.com/grafeas/grafeas/proto/v1beta1/static_analysis_go_proto";
+option java_multiple_files = true;
+option java_package = "io.grafeas.v1beta1.static_analysis";
+option objc_class_prefix = "GRA";
+
+import "google/protobuf/timestamp.proto";
+import "proto/v1beta1/source.proto";
+
+// Rating defines a common scoring system to use in different code quality dimensions.
+enum Rating {
+    A = 0;
+    B = 1;
+    C = 2;
+    D = 3;
+    E = 4;
+}
+
+// StaticAnalysis is the Note for static analyses on pieces of code.
+message StaticAnalysis {
+    // Analysis tool involved.
+    string tool = 1;
+    // Version of the analysis tool used.
+    string tool_version = 2;
+    // Analysis tool configuration at the time of the analysis run.
+    string tool_config = 3;
+    // Overall code quality stats
+    Stats summary = 4;
+   //Source context were the analysis ran.
+    grafeas.v1beta1.source.SourceContext context = 5;
+    // Time at which execution of the analysis was started.
+    google.protobuf.Timestamp start_time = 6;
+    // Time at which execution of the analysis was finished.
+    google.protobuf.Timestamp end_time = 7;
+}
+
+// Static Analysis statistics.
+message Stats {
+    // Cyclomatic and cognitive complexity stats
+    Complexity complexity = 1;
+    // Code duplication
+    Duplication duplication = 2;
+    // Software Quality Assessment based on Lifecycle Expectations (SQALE)
+    Maintainability maintainability = 3;
+    // Reliability stats
+    Reliability reliability = 4;
+    // Security stats
+    Security security = 5;
+    // Code size
+    CodeSize code_size = 6;
+    // Issues found
+    Issues issues = 7;
+}
+
+// Code Complexity
+message Complexity {
+    // Cyclomatic Complexity calculated based on the number of paths through the code.
+    // Whenever the control flow of a function splits, the complexity counter gets incremented by one.
+    // Each function has a minimum complexity of 1.
+    // This calculation varies slightly by language because keywords and functionalities do.
+    uint32 cyclomatic = 1;
+    // How hard it is to understand the code's control flow.
+    // See https://www.sonarsource.com/resources/white-papers/cognitive-complexity.html
+    // for a complete description of the mathematical model applied to compute this measure.
+    uint32 cognitive = 2;
+    // Optional list of findings (complexities)
+    repeated Finding findings = 3;
+}
+
+// Code duplication
+message Duplication {
+    // Number of duplicated blocks of lines.
+    uint32 blocks = 1;
+    // Number of files involved in duplications.
+    uint32 files = 2;
+    // Number of lines involved in duplications.
+    uint32 lines = 3;
+    // The ratio of duplicated lines in relation to the total number of lines.
+    // duplicated_lines / lines * 100
+    float lines_density = 4;
+}
+
+// Maintainability of the code or Software Quality Assessment based on Lifecycle Expectations (SQALE)
+message Maintainability {
+    // Total count of Code Smell issues.
+    uint64 code_smells = 1;
+
+    // Rating given to your project related to the value of your sqale_debt_ratio. Values can be A, B, C, D or E.
+    Rating sqale_rating = 2;
+    // Effort to fix all Code Smells, in minutes.
+    uint32 sqale_index = 4;
+    // Ratio between the cost to develop the software and the cost to fix it.
+    // Ratio formula is: Remediation cost / Development cost
+    // Which can be restated as:
+    // Remediation cost / (Cost to develop 1 line of code * Number of lines of code)
+    // The value of the cost to develop a line of code is 0.06 days.
+    float sqale_debt_ratio = 5;
+    // Optional list of findings (code smells)
+    repeated Finding findings = 6;
+}
+
+message Reliability {
+    // Number of bug issues.
+    uint32 bugs = 1;
+    // Rating given based on the number of bugs and their criticality
+    Rating rating = 2;
+    // Effort to fix all bug issues, in minutes.
+    uint32 remediation_effort = 3;
+    // Optional list of findings (bugs)
+    repeated Finding findings = 4;
+}
+
+message Security {
+    // Number of vulnerability issues.
+    uint32 vulnerabilities = 1;
+    // Security rating letter.
+    Rating security_rating = 2;
+    // Effort to fix all vulnerability issues, in minutes
+    uint32 security_remediation_effort = 3;
+ 
+    Rating security_review_rating = 4;
+    // Optional list of findings (vulnerabilites)
+    repeated Finding findings = 5;
+ }
+
+message CodeSize {
+    // Number of classes
+    uint32 classes = 1;
+    // Number of lines containing either comment or commented-out code.
+    // Non-significant comment lines (empty comment lines, comment lines containing only
+    // special characters, etc.) do not increase the number of comment lines.
+    uint32 comment_lines = 2;
+    // Density of comment lines = Comment lines / (Lines of code + Comment lines) * 100
+    // With such a formula:
+    // 50% means that the number of lines of code equals the number of comment lines
+    // 100% means that the file only contains comment lines
+    float comment_lines_density = 3;
+    // Number of directories.
+    uint32 directories = 4;
+    // Number of files.
+    uint64 files = 5;
+    // Number of physical lines (number of carriage returns).
+    uint64 lines = 6;
+    // Lines of code. Number of physical lines that contain at least one character which is neither a whitespace nor
+    // a tabulation nor part of a comment.
+    uint64 ncloc = 7;
+    // Number of functions. Depending on the language, a function is either a function or a method or a paragraph.
+    uint64 functions = 8;
+    // Number of statements.
+    uint64 statements = 9;
+}
+
+message Issues {
+    // Total count of issues in all states.
+    uint32 total = 1;
+    // Total count of blocking issues.
+    uint32 blocker = 2;
+    // Total count of critical issues.
+    uint32 critical = 3;
+    // Total count of major issues.
+    uint32 major = 4;
+    // Total count of minor issues.
+    uint32 minor = 5;
+    // Total count of info issues.
+    uint32 info = 6;
+    // Total count of issues marked False Positive.
+    uint32 false_positives = 7;
+    // Total count of issues in the Open state.
+    uint32 open = 8;
+    // Total count of issues in the Confirmed state.
+    uint32 confirmed = 9;
+    // Total count of issues in the Reopened state
+    uint32 reopened = 10;
+}
+
+
+
+// FileLocation defines the exact location for a given analysis result.
+message FileLocation {
+    // Absolute File system path.
+    string file_path = 1;
+    // File line number.
+    uint64 line_number = 2;
+    // Start index within the line number.
+    uint32 start_column = 3;
+    // End index within the line number.
+    uint32 end_column = 4;
+}
+
+message Finding {
+    // File location of the analsys results.
+    FileLocation file_location = 1;
+    // A name or title of the finding
+    string name = 2;
+    // Identifier for the finding
+    string id = 3;
+    // A description for the finding
+    string description = 4;
+}
