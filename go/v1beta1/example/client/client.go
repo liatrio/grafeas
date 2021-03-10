@@ -15,29 +15,50 @@
 package main
 
 import (
-	"context"
-	"log"
+	"encoding/json"
+	"fmt"
+	"net/http"
 
 	pb "github.com/grafeas/grafeas/proto/v1beta1/grafeas_go_proto"
-	"google.golang.org/grpc"
+
+	"log"
 )
 
 func main() {
-	conn, err := grpc.Dial("localhost:8080", grpc.WithInsecure())
-	defer conn.Close()
-	client := pb.NewGrafeasV1Beta1Client(conn)
-	// List notes
-	resp, err := client.ListNotes(context.Background(),
-		&pb.ListNotesRequest{
-			Parent: "projects/myproject",
-		})
-	if err != nil {
-		log.Fatal(err)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/webhook/event", handleWebhook)
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) { fmt.Fprintf(w, "I'm healthy") })
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", 8080),
+		Handler: mux,
 	}
 
-	if len(resp.Notes) != 0 {
-		log.Println(resp.Notes)
-	} else {
-		log.Printf("Project 'myproject' does not contain any notes")
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Fatal("could not start http server...")
+		}
+	}()
+
+	fmt.Println("listening for events")
+
+}
+
+func handleWebhook(w http.ResponseWriter, request *http.Request) {
+	event := &Event{}
+	if err := json.NewDecoder(request.Body).Decode(event); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Println("error reading webhook event")
+		return
 	}
+
+	occ := &pb.Occurrence{}
+
+}
+
+type Event struct {
+	Type     WebhookEvent `json:"type"`
+	OccurAt  int64        `json:"occur_at"`
+	Operator string       `json:"operator"`
+	Data     *EventData   `json:"event_data"`
 }
