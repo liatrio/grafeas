@@ -1,4 +1,4 @@
-module github.com/grafeas/grafeas
+module github.com/liatrio/grafeas
 
 go 1.14
 
