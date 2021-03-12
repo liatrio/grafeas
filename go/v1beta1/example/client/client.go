@@ -17,7 +17,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strconv"
+	"strings"
 
 	pb "github.com/grafeas/grafeas/proto/v1beta1/grafeas_go_proto"
 	"github.com/grafeas/grafeas/proto/v1beta1/source_go_proto"
@@ -42,15 +45,161 @@ func main() {
 
 }
 
-func retrieveSonarServerInfo(sonarUrl string, staticanalysis *pb.Occurrence_StaticAnalysis) {
+func retrieveSonarServerInfo(sonarURL string, staticanalysis *pb.Occurrence_StaticAnalysis) {
+	url := fmt.Sprintf("%s/api/server/version", sonarURL)
+	method := "GET"
 
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, nil)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	staticanalysis.StaticAnalysis.AnalysisResults.ToolVersion = string(body)
+	staticanalysis.StaticAnalysis.AnalysisResults.Tool = "Sonarqube"
 }
 
-func retrieveOverallMeasures(sonarUrl string, staticanalysis *pb.Occurrence_StaticAnalysis) {
+func retrieveOverallMeasures(sonarURL string, staticanalysis *pb.Occurrence_StaticAnalysis) {
 
+	// parm := url.Values{}
+	// parm.Add("additionalFields", "metrics,periods")
+	// parm.Add("component", "app")
+	// parm.Add("metricKeys", "sqale_debt_ratio,duplicated_files,duplicated_lines,alert_status,functions,quality_gate_details,bugs,new_bugs,reliability_rating,new_reliability_rating,vulnerabilities,new_vulnerabilities,security_rating,new_security_rating,security_hotspots,new_security_hotspots,security_hotspots_reviewed,new_security_hotspots_reviewed,security_review_rating,new_security_review_rating,code_smells,new_code_smells,sqale_rating,new_maintainability_rating,sqale_index,new_technical_debt,coverage,new_coverage,lines_to_cover,new_lines_to_cover,tests,duplicated_lines_density,new_duplicated_lines_density,duplicated_blocks,ncloc,ncloc_language_distribution,projects,lines,new_lines,complexity,cognitive_complexity,reliability_remediation_effort,security_remediation_effort,classes,comment_lines,comment_lines_density,directories,files,statements")
+
+	url := fmt.Sprintf("%s/api/measures/component?additionalFields=metrics,periods&component=app&metricKeys=sqale_debt_ratio,duplicated_files,duplicated_lines,alert_status,functions,quality_gate_details,bugs,new_bugs,reliability_rating,new_reliability_rating,vulnerabilities,new_vulnerabilities,security_rating,new_security_rating,security_hotspots,new_security_hotspots,security_hotspots_reviewed,new_security_hotspots_reviewed,security_review_rating,new_security_review_rating,code_smells,new_code_smells,sqale_rating,new_maintainability_rating,sqale_index,new_technical_debt,coverage,new_coverage,lines_to_cover,new_lines_to_cover,tests,duplicated_lines_density,new_duplicated_lines_density,duplicated_blocks,ncloc,ncloc_language_distribution,projects,lines,new_lines,complexity,cognitive_complexity,reliability_remediation_effort,security_remediation_effort,classes,comment_lines,comment_lines_density,directories,files,statements", sonarURL)
+	// url := fmt.Sprintf("%s/api/measures/component", sonarURL)
+	method := "GET"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, nil)
+	// req, err := http.NewRequest(method, url, strings.NewReader(parm.Encode()))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+
+	overallMeasures := &OverallMeasures{}
+	if err := json.NewDecoder(res.Body).Decode(overallMeasures); err != nil {
+		fmt.Println("error reading response from sonarqube")
+		return
+	}
+
+	for i := range overallMeasures.Component.Measures {
+		if overallMeasures.Component.Measures[i].Metric == "complexity" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Complexity.Cyclomatic = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "cognitive_complexity" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Complexity.Cognitive = stringToUint32(overallMeasures.Component.Measures[i].Value)
+			//-----------------------------------------------------------------------
+		} else if overallMeasures.Component.Measures[i].Metric == "duplicated_lines" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Duplication.Lines = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "duplicated_files" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Duplication.Files = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "duplicated_lines_density" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Duplication.LinesDensity = stringToFloat(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "duplicated_blocks" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Duplication.Blocks = stringToUint32(overallMeasures.Component.Measures[i].Value)
+			// ---------------------------------------------------------------------
+		} else if overallMeasures.Component.Measures[i].Metric == "code_smells" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Maintainability.CodeSmells = stringToUint64(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "sqale_rating" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Maintainability.SqaleRating = static_analysis_go_proto.Rating(stringToInt(overallMeasures.Component.Measures[i].Value))
+		} else if overallMeasures.Component.Measures[i].Metric == "sqale_index" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Maintainability.SqaleIndex = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "sqale_debt_ratio" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Maintainability.SqaleDebtRatio = stringToFloat(overallMeasures.Component.Measures[i].Value)
+			// --------------------------------------------------------
+		} else if overallMeasures.Component.Measures[i].Metric == "bugs" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Reliability.Bugs = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "reliability_rating" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Reliability.Rating = static_analysis_go_proto.Rating(stringToInt(overallMeasures.Component.Measures[i].Value))
+		} else if overallMeasures.Component.Measures[i].Metric == "reliability_remediation_effort" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Reliability.RemediationEffort = stringToUint32(overallMeasures.Component.Measures[i].Value)
+			// -------------------------------------------------------
+		} else if overallMeasures.Component.Measures[i].Metric == "vulnerabilities" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Security.Vulnerabilities = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "security_rating" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Security.SecurityRating = static_analysis_go_proto.Rating(stringToInt(overallMeasures.Component.Measures[i].Value))
+		} else if overallMeasures.Component.Measures[i].Metric == "security_remediation_effort" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Security.SecurityRemediationEffort = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "security_review_rating" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.Security.SecurityReviewRating = static_analysis_go_proto.Rating(stringToInt(overallMeasures.Component.Measures[i].Value))
+			// -------------------------------------------------------------
+		} else if overallMeasures.Component.Measures[i].Metric == "classes" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.CodeSize.Classes = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "comment_lines" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.CodeSize.CommentLines = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "comment_lines_density" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.CodeSize.CommentLinesDensity = stringToFloat(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "directories" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.CodeSize.Directories = stringToUint32(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "files" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.CodeSize.Files = stringToUint64(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "lines" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.CodeSize.Lines = stringToUint64(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "functions" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.CodeSize.Functions = stringToUint64(overallMeasures.Component.Measures[i].Value)
+		} else if overallMeasures.Component.Measures[i].Metric == "statements" {
+			staticanalysis.StaticAnalysis.AnalysisResults.Summary.CodeSize.Statements = stringToUint64(overallMeasures.Component.Measures[i].Value)
+		}
+
+	}
 }
 
-func retrieveAllIssues(sonarUrl string, staticanalysis *pb.Occurrence_StaticAnalysis) {
+func stringToUint32(val string) uint32 {
+	result, err := strconv.ParseUint(val, 10, 32)
+	if err != nil {
+		log.Printf("Failed to convert string to uint32")
+	}
+	return uint32(result)
+}
+
+func stringToUint64(val string) uint64 {
+	result, err := strconv.ParseUint(val, 10, 64)
+	if err != nil {
+		log.Printf("Failed to convert string to uint64")
+	}
+	return result
+}
+
+func stringToFloat(val string) float32 {
+	result, err := strconv.ParseFloat(val, 32)
+	if err != nil {
+		log.Printf("Failed to convert string to float32")
+	}
+	return float32(result)
+}
+
+func stringToInt(val string) int {
+	if strings.Contains(val, ".") {
+		return int(stringToFloat(val))
+	}
+	result, err := strconv.ParseInt(val, 10, 32)
+	if err != nil {
+		log.Printf("Failed to convert string to int")
+	}
+	return int(result)
+}
+
+func retrieveAllIssues(sonarURL string, staticanalysis *pb.Occurrence_StaticAnalysis) {
 	// TODO implement pagination
 }
 
@@ -147,6 +296,10 @@ func handleWebhook(w http.ResponseWriter, request *http.Request) {
 		},
 	}
 
+	retrieveSonarServerInfo(event.ServerURL, staticanalysis)
+	retrieveOverallMeasures(event.ServerURL, staticanalysis)
+	retrieveAllIssues(event.ServerURL, staticanalysis)
+
 	occ := &pb.Occurrence{
 		Name: "",
 		Resource: &pb.Resource{
@@ -172,6 +325,7 @@ func handleWebhook(w http.ResponseWriter, request *http.Request) {
 
 // Sonar stuff-----------------------------------------------------------
 type Event struct {
+	ServerURL   string            `json:"serverUrl"`
 	TaskID      string            `json:"taskid"`
 	Status      string            `json:"status"`
 	AnalyzedAt  string            `json:"analyzedat"`
@@ -215,46 +369,53 @@ type Condition struct {
 
 // Overall Measures
 type OverallMeasures struct {
-	Component struct {
-		ID        string `json:"id"`
-		Key       string `json:"key"`
-		Name      string `json:"name"`
-		Qualifier string `json:"qualifier"`
-		Measures  []struct {
-			Metric    string `json:"metric"`
-			Value     string `json:"value,omitempty"`
-			BestValue bool   `json:"bestValue,omitempty"`
-			Periods   []struct {
-				Index     int    `json:"index"`
-				Value     string `json:"value"`
-				BestValue bool   `json:"bestValue"`
-			} `json:"periods,omitempty"`
-			Period struct {
-				Index     int    `json:"index"`
-				Value     string `json:"value"`
-				BestValue bool   `json:"bestValue"`
-			} `json:"period,omitempty"`
-		} `json:"measures"`
-	} `json:"component"`
-	Metrics []struct {
-		Key                   string `json:"key"`
-		Name                  string `json:"name"`
-		Description           string `json:"description"`
-		Domain                string `json:"domain"`
-		Type                  string `json:"type"`
-		HigherValuesAreBetter bool   `json:"higherValuesAreBetter,omitempty"`
-		Qualitative           bool   `json:"qualitative"`
-		Hidden                bool   `json:"hidden"`
-		Custom                bool   `json:"custom"`
-		BestValue             string `json:"bestValue,omitempty"`
-		DecimalScale          int    `json:"decimalScale,omitempty"`
-		WorstValue            string `json:"worstValue,omitempty"`
-	} `json:"metrics"`
-	Periods []struct {
-		Index int    `json:"index"`
-		Mode  string `json:"mode"`
-		Date  string `json:"date"`
-	} `json:"periods"`
+	Component Component `json:"component"`
+	Metrics   []Metrics `json:"metrics"`
+	Periods   []Periods `json:"periods"`
+}
+
+type Periods struct {
+	Index int    `json:"index"`
+	Mode  string `json:"mode"`
+	Date  string `json:"date"`
+}
+
+type Metrics struct {
+	Key                   string `json:"key"`
+	Name                  string `json:"name"`
+	Description           string `json:"description"`
+	Domain                string `json:"domain"`
+	Type                  string `json:"type"`
+	HigherValuesAreBetter bool   `json:"higherValuesAreBetter,omitempty"`
+	Qualitative           bool   `json:"qualitative"`
+	Hidden                bool   `json:"hidden"`
+	Custom                bool   `json:"custom"`
+	BestValue             string `json:"bestValue,omitempty"`
+	DecimalScale          int    `json:"decimalScale,omitempty"`
+	WorstValue            string `json:"worstValue,omitempty"`
+}
+type Component struct {
+	ID        string     `json:"id"`
+	Key       string     `json:"key"`
+	Name      string     `json:"name"`
+	Qualifier string     `json:"qualifier"`
+	Measures  []Measures `json:"measures"`
+}
+
+type Measures struct {
+	Metric    string `json:"metric"`
+	Value     string `json:"value,omitempty"`
+	BestValue bool   `json:"bestValue,omitempty"`
+	Periods   []struct {
+		Index     int    `json:"index"`
+		Value     string `json:"value"`
+		BestValue bool   `json:"bestValue"`
+	} `json:"periods,omitempty"`
+	Period struct {
+		Index     int    `json:"index"`
+		Value     string `json:"value"`
+		BestValue bool   `json:"bestValue"`
+	} `json:"period,omitempty"`
 }
 
 // Individual Issues
