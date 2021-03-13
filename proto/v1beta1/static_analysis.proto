@@ -69,42 +69,66 @@ message Duplication {
 message Maintainability {
     // Total count of Code Smell issues.
     uint64 code_smells = 1;
+    // Total count of Code Smell issues raised for the first time on New Code.
+    uint64 new_code_smells = 2;
     // Rating given to your project related to the value of your sqale_debt_ratio. Values can be A, B, C, D or E.
-    Rating sqale_rating = 2;
+    Rating sqale_rating = 3;
     // Effort to fix all Code Smells, in minutes.
     uint32 sqale_index = 4;
+    // Effort to fix all Code Smells raised for the first time on New Code.
+    uint32 new_technical_debt = 5;
     // Ratio between the cost to develop the software and the cost to fix it.
     // Ratio formula is: Remediation cost / Development cost
     // Which can be restated as:
     // Remediation cost / (Cost to develop 1 line of code * Number of lines of code)
     // The value of the cost to develop a line of code is 0.06 days.
-    float sqale_debt_ratio = 5;
+    float sqale_debt_ratio = 6;
+    // Ratio between the cost to develop the code changed on New Code and the cost of the issues linked to it.
+    float new_sqale_debt_ratio = 7;
     // Optional list of findings (code smells)
-    repeated Finding findings = 6;
+    repeated Finding findings = 8;
 }
 
 message Reliability {
     // Number of bug issues.
     uint32 bugs = 1;
+    // Number of new bug issues.
+    uint32 new_bugs = 2;
     // Rating given based on the number of bugs and their criticality
-    Rating rating = 2;
+    Rating rating = 3;
+    // Rating based on new code
+    Rating new_reliability_rating = 4;
     // Effort to fix all bug issues, in minutes.
-    uint32 remediation_effort = 3;
+    uint32 remediation_effort = 5;
+    // Same as Reliability remediation effort but on the code changed on New Code.
+    uint32 new_reliability_remediation_effort = 6;
     // Optional list of findings (bugs)
-    repeated Finding findings = 4;
+    repeated Finding findings = 7;
 }
 
 message Security {
     // Number of vulnerability issues.
     uint32 vulnerabilities = 1;
+    // Number of vulnerability issues on new code.
+    uint32 new_vulnerabilities = 2;
     // Security rating letter.
-    Rating security_rating = 2;
+    Rating security_rating = 3;
     // Effort to fix all vulnerability issues, in minutes
-    uint32 security_remediation_effort = 3;
- 
-    Rating security_review_rating = 4;
+    uint32 security_remediation_effort = 4;
+    // Same as Security remediation effort but on the code changed on New Code
+    uint32 new_security_remediation_effort = 5;
+    // Number of Security hotspots
+    uint32 security_hotspots = 6;
+    // Security hotspots on new code
+    uint32 new_security_hotspots = 7;
+    // Letter grade based on the percentage of reviewed security hotspots
+    Rating security_review_rating = 8;
+    // Letter grade based on the percentage of reviewed security hotspots for new code
+    Rating new_security_review_rating = 9;
+    // Percentage of review security hotspots (review hotspots x 100)/(to_review hotspots + review hotspots)
+    float security_hotspots_reviewed = 10;
     // Optional list of findings (vulnerabilites)
-    repeated Finding findings = 5;
+    repeated Finding findings = 11;
  }
 
 message CodeSize {
@@ -139,26 +163,38 @@ message CodeSize {
 message Issues {
     // Total count of issues in all states.
     uint32 total = 1;
+    // // Total count of issues on New code
+    uint32 new_total = 2;
     // Total count of blocking issues.
-    uint32 blocker = 2;
+    uint32 blocker = 3;
     // Total count of critical issues.
-    uint32 critical = 3;
+    uint32 critical = 4;
     // Total count of major issues.
-    uint32 major = 4;
+    uint32 major = 5;
     // Total count of minor issues.
-    uint32 minor = 5;
+    uint32 minor = 6;
     // Total count of info issues.
-    uint32 info = 6;
+    uint32 info = 7;
+    // Total count of blocking issues on New Code.
+    uint32 new_blocker = 8;
+    // Total count of critical issues on New Code.
+    uint32 new_critical = 9;
+    // Total count of major issues on New Code.
+    uint32 new_major = 10;
+    // Total count of minor issues on New Code.
+    uint32 new_minor = 11;
+    // Total count of info issues on New Code.
+    uint32 new_info = 12;
     // Total count of issues marked False Positive.
-    uint32 false_positives = 7;
+    uint32 false_positives = 13;
     // Total count of issues in the Open state.
-    uint32 open = 8;
+    uint32 open = 14;
     // Total count of issues in the Confirmed state.
-    uint32 confirmed = 9;
+    uint32 confirmed = 15;
     // Total count of issues in the Reopened state
-    uint32 reopened = 10;
+    uint32 reopened = 16;
     // Optional list of findings (issues)
-    repeated Finding findings = 11;
+    repeated Finding findings = 17;
 }
 
 // FileLocation defines the exact location for a given analysis result.
