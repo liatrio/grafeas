@@ -197,6 +197,64 @@ message Issues {
     repeated Finding findings = 17;
 }
 
+message Tests {
+    // On each line of code containing some boolean expressions, the condition coverage simply answers the following question: 'Has each boolean expression been evaluated both to true and false?'. This is the density of possible conditions in flow control structures that have been followed during unit tests execution.
+    float condition_coverage = 1;
+    // Identical to Condition coverage but restricted to new / updated source code.
+    float new_conition_coverage = 2;
+    // XXXXXXXXX List of covered conditions.
+    string condition_coverage_hits = 3;
+    // XXXXXXXXX Number of conditions by line.
+    uint32 conditions_by_line = 4;
+    // XXXXXXXXXX Number of covered conditions by line.
+    uint32 covered_conditions_by_line = 5;
+    // XXXXXXXXXX It is a mix of Line coverage and Condition coverage. Its goal is to provide an even more accurate answer to the following question: How much of the source code has been covered by the unit tests?
+    float coverage = 6;
+    // Identical to Coverage but restricted to new / updated source code.
+    float new_coverage = 8;
+    // On a given line of code, Line coverage simply answers the following question: Has this line of code been executed during the execution of the unit tests?.
+    float line_coverage = 9;
+    // Identical to Line coverage but restricted to new / updated source code.
+    float new_line_coverage = 10;
+    // Number of lines of code which could be covered by unit tests (for example, blank lines or full comments lines are not considered as lines to cover).
+    uint32 lines_to_cover = 11;
+    // Identical to Lines to cover but restricted to new / updated source code.
+    uint32 new_lines_to_cover = 12;
+    //Number of skipped unit tests.
+    uint32 skipped_tests = 13;
+    // Number of conditions which are not covered by unit tests.
+    uint32 uncovered_conditions = 14;
+    // Identical to Uncovered conditions but restricted to new / updated source code.
+    uint32 new_uncovered_conditions = 15;
+    // Number of lines of code which are not covered by unit tests.
+    uint32 uncovered_lines = 16;
+    // Identical to Uncovered lines but restricted to new / updated source code.
+    uint32 new_uncovered_lines = 17;
+    // Number of unit tests.
+    uint32 tests = 18;
+    // Time required to execute all the unit tests. Milliseconds
+    uint64 test_execution_time = 19;
+    // Number of unit tests that have failed.
+    uint32 test_errors = 20;
+    // Number of unit tests that have failed with an unexpected exception.
+    uint32 test_failures = 21;
+    // Test success density = (Unit tests - (Unit test errors + Unit test failures)) / Unit tests * 100
+    float test_success_density = 22;
+
+}
+
+// QualityGate provides information about the quality gate and its status
+message QualityGate {
+    // Name of the quality gate used
+    string quality_gate_name = 1;
+    // Name of the quality profile used
+    string quality_profile_name = 2;
+    // State of the Quality Gate associated to your Project. Possible values are : ERROR, OK WARN value has been removed since 7.6.
+    string quality_gate_status = 3;
+    // For all the conditions of your Quality Gate, you know which condition is failing and which is not.
+    string quality_gate_details = 4;
+}
+
 // FileLocation defines the exact location for a given analysis result.
 message FileLocation {
     // Absolute File system path.
@@ -236,6 +294,10 @@ message Stats {
     CodeSize code_size = 6;
     // Issues found
     Issues issues = 7;
+    // Quality Gate information
+    QualityGate quality_gate = 8;
+    // Tests stats
+    Tests tests = 9;
 }
 
 // StaticAnalysis is the Note for static analyses on pieces of code.
